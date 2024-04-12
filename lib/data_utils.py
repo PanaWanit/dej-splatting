@@ -2,12 +2,25 @@ import os
 import pandas as pd
 import numpy as np
 import torch
+import torch.functional as F
 from torch import nn
 from transformcov import gen_rotation
 import imageio
 
 # Read images.txt
 def read_images_colmap(images_file_path : str):
+    def read_image(image_path, scale_factor):
+        image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
+        image_size = image.shape[:2]
+
+        if scale_factor != 1:
+            image_size[0] = image_size[0] * scale_factor
+            image_size[0] = image_size[1] * scale_factor
+            image = F.interpolate(image.permute(0, 3, 1, 2), scale_factor=scale_factor, mode='bilinear').permute(0, 2, 3, 1)
+
+        return image
+
+
     images_columns = ['IMAGE_ID', 'QW', 'QX', 'QY', 'QZ', 'TX', 'TY', 'TZ', 'CAMERA_ID', 'NAME']
     columns_type = {
         'IMAGE_ID': int,
@@ -37,7 +50,7 @@ def read_images_colmap(images_file_path : str):
     extrinsics[:, 1, 3] = torch.from_numpy(df['TY'].to_numpy())
     extrinsics[:, 2, 3] = torch.from_numpy(df['TZ'].to_numpy())
         
-    return extrinsics, R, df['CAMERA_ID'].to_numpy()
+    return extrinsics, R, df['CAMERA_ID'].to_numpy(), df['NAME'].apply(read_image)
 
 def read_cameras_colmap(camera_file_path:str):
     columns = ['CAM_ID', 'MODEL', 'W', 'H', 'FocalX', 'FocalY', 'PrincX', 'PrincY']
