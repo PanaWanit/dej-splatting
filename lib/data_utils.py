@@ -56,7 +56,7 @@ def read_images_colmap(images_file_path : str, scale_factor:float = 1):
 
     rgbs = [read_image(img_path) for img_path in df['NAME']]
         
-    return extrinsics, R, df['CAMERA_ID'].to_numpy(), rgbs
+    return extrinsics, R, df['CAMERA_ID'].to_numpy(), rgbs, df
 
 def read_cameras_colmap(camera_file_path:str):
     columns = ['CAM_ID', 'MODEL', 'W', 'H', 'FocalX', 'FocalY', 'PrincX', 'PrincY']
@@ -80,11 +80,11 @@ def read_cameras_colmap(camera_file_path:str):
     intrinsics[:, 0, 2] = torch.from_numpy(df['PrincX'].to_numpy())
     intrinsics[:, 1, 2] = torch.from_numpy(df['PrincY'].to_numpy())
     intrinsics[:, 2, 2] = 1
-    return intrinsics, torch.from_numpy(df['W'].to_numpy()), torch.from_numpy(df['H'].to_numpy())
+    return intrinsics, torch.from_numpy(df['W'].to_numpy()), torch.from_numpy(df['H'].to_numpy()), df
 
 def read_all(images_file_path:str, camera_file_path:str):
-    extrinsics, R, cam_ids, rgbs = read_images_colmap(images_file_path)
-    intrinsics, Ws, Hs = read_cameras_colmap(camera_file_path)
+    extrinsics, R, cam_ids, rgbs, image_df = read_images_colmap(images_file_path)
+    intrinsics, Ws, Hs, camera_df = read_cameras_colmap(camera_file_path)
 
     properties = []
     
@@ -97,6 +97,9 @@ def read_all(images_file_path:str, camera_file_path:str):
         cur_W = Ws[cam_id]
         cur_H = Hs[cam_id]
 
+        cur_image_df = image_df.iloc[idx]
+        cur_camera_df = camera_df.iloc[cam_id]
+
         w2img =  cur_intrinsic @ cur_extrinsic
 
         properties.append({
@@ -104,7 +107,9 @@ def read_all(images_file_path:str, camera_file_path:str):
             'H': cur_H,
             'W': cur_W,
             'R': cur_R,
-            'w2img': w2img
+            'w2img': w2img,
+            'image_df': cur_image_df,
+            'camera_df': cur_camera_df
         })
     return properties
         

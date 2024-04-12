@@ -62,14 +62,12 @@ def get_covariance_3d(R, S):
     RS = R @ S # [Vec, 3, 3]
     return RS @ RS.transpose(1, 2)
 
-def get_covariance_2d(mean3d, cov3d, viewmatrix, fov_x, fov_y, focal_x, focal_y):
-    tan_fovx = math.tan(fov_x * 0.5)
-    tan_fovy = math.tan(fov_y * 0.5)
-    t = (mean3d @ viewmatrix[:3, :3]) + viewmatrix[-1:,:3]
+def get_covariance_2d(mean3d, cov3d, w2img, image_df, camera_df):
+    focal_x, focal_y = camera_df['FocalX'], camera_df['FocalY']
 
-    tx = (t[:, 0] / t[:, 2]).clip(min=-tan_fovx*1.3, max=tan_fovx*1.3) * t[:, 2]
-    ty = (t[:, 1] / t[:, 2]).clip(min=-tan_fovy*1.3, max=tan_fovy*1.3) * t[:, 2]
-    tz = t[:, 2]
+    tx = image_df['TX']
+    ty = image_df['TY']
+    tz = image_df['TZ']
 
     J = torch.zeros(mean3d.shape[0], 3, 3).to(mean3d)
     J[:, 0, 0] = 1 / tz * focal_x
@@ -77,7 +75,7 @@ def get_covariance_2d(mean3d, cov3d, viewmatrix, fov_x, fov_y, focal_x, focal_y)
     J[:, 1, 1] = 1 / tz * focal_y
     J[:, 1, 2] = -ty / (tz * tz) * focal_y
 
-    W = viewmatrix[:3, :3].T
+    W = w2img[:3, :3]#.T
     cov2d = J @ W @ cov3d @ W.T @ J.transpose(1, 2)
     
     filter = torch.eye(2,2).to(cov2d) * 0.3
