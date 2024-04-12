@@ -28,7 +28,7 @@ class GaussModel(nn.Module):
         self._scaling = torch.empty(0)
         self._rotation = torch.empty(0)
         self._opacity = torch.empty(0)
-        self.setup(self)
+        self.setup()
     
     def setup(self):
         def init_covariance_from_scaling_rotation(scaling, scaling_modifier, rotation):
