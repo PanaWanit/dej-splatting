@@ -9,7 +9,19 @@ def read_images(images_file_path : str):
     with open(images_file_path) as f:
         images_list = [line.split() for line in f.readlines()[::2]]
         images_columns = ['IMAGE_ID', 'QW', 'QX', 'QY', 'QZ', 'TX', 'TY', 'TZ', 'CAMERA_ID', 'NAME']
-        images_df = pd.DataFrame(images_list, columns = images_columns, dtype = float)
+        columns_type = {
+            'IMAGE_ID': int,
+            'QW': float,
+            'QX': float,
+            'QY': float,
+            'QZ': float,
+            'TX': float,
+            'TY': float,
+            'TZ': float,
+            'CAMERA_ID': int,
+            'NAME': str,
+        }
+        images_df = pd.DataFrame(images_list, columns = images_columns).astype(columns_type)
     return images_df
 
 def read_cameras(camera_file_path:str) -> pd.DataFrame:
