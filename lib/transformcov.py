@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import math
+from sh_utils import eval_sh
 
 #################### Transform ############################
-
 
 def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
     points_o = torch.hstack([points, torch.ones(points.size(0), 1)]) # make it homogenous
@@ -13,6 +13,13 @@ def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
     p_view = points_o @ viewmatrix
     mask = p_view[:, 2] >= 0.2
     return p_proj[mask], p_view[mask]
+
+def build_color(means3D, shs, camera, sh_degree):
+    rays_o = camera.camera_center
+    rays_d = means3D - rays_o
+    color = eval_sh(sh_degree, shs.permute(0,2,1), rays_d)
+    color = (color + 0.5).clip(min=0.0)
+    return color
 
 
 ############################################################
