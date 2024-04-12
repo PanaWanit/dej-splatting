@@ -26,14 +26,7 @@ def build_color(means3D, shs, camera, sh_degree):
 
 #################### Covariance ############################
 
-def get_covariance_3d(scale:torch.Tensor, rot:torch.Tensor):
-    """
-        1. Rotation
-        2. Scaling
-        3. Covariance
-    """
-
-    ## Rotation
+def gen_rotation(rot:torch.tensor):
     norm = torch.sqrt(rot[:, 0] * rot[:, 0] + rot[:, 1] * rot[:, 1] + rot[:, 2] * rot[:, 2] + rot[:, 3] * rot[:, 3])
 
     q = rot / norm.unsqueeze(1)
@@ -55,8 +48,20 @@ def get_covariance_3d(scale:torch.Tensor, rot:torch.Tensor):
     R[:, 2, 1] = 2 * (y*z + r*x)
     R[:, 2, 2] = 1 - 2 * (x*x + y*y)
 
+    return R
+
+def get_covariance_3d(scale:torch.Tensor, rot:torch.Tensor):
+    """
+        1. Rotation
+        2. Scaling
+        3. Covariance
+    """
+
+    ## Rotation
+    R = gen_rotation(rot)
+
     # Scaling
-    S = torch.zeros((q.size(0), 3, 3), device='cuda')
+    S = torch.zeros((scale.size(0), 3, 3), device='cuda')
     S[:, 0, 0] = scale[:, 0]
     S[:, 1, 1] = scale[:, 1]
     S[:, 2, 2] = scale[:, 2]

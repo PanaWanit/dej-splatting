@@ -3,28 +3,43 @@ import pandas as pd
 import numpy as np
 import torch
 from torch import nn
+from transformcov import gen_rotation
+import imageio
 
 # Read images.txt
-def read_images_colmap(images_file_path : str) -> pd.DataFrame:
+def read_images_colmap(images_file_path : str):
+    images_columns = ['IMAGE_ID', 'QW', 'QX', 'QY', 'QZ', 'TX', 'TY', 'TZ', 'CAMERA_ID', 'NAME']
+    columns_type = {
+        'IMAGE_ID': int,
+        'QW': float,
+        'QX': float,
+        'QY': float,
+        'QZ': float,
+        'TX': float,
+        'TY': float,
+        'TZ': float,
+        'CAMERA_ID': int,
+        'NAME': str,
+    }
+
     with open(images_file_path) as f:
         images_list = [line.split() for line in f.readlines()[::2]]
-        images_columns = ['IMAGE_ID', 'QW', 'QX', 'QY', 'QZ', 'TX', 'TY', 'TZ', 'CAMERA_ID', 'NAME']
-        columns_type = {
-            'IMAGE_ID': int,
-            'QW': float,
-            'QX': float,
-            'QY': float,
-            'QZ': float,
-            'TX': float,
-            'TY': float,
-            'TZ': float,
-            'CAMERA_ID': int,
-            'NAME': str,
-        }
-        images_df = pd.DataFrame(images_list, columns = images_columns).astype(columns_type)
-    return images_df
 
-def read_cameras_colmap(camera_file_path:str) -> pd.DataFrame:
+    df = pd.DataFrame(images_list, columns = images_columns).astype(columns_type)
+    
+    # Compute extrinsic
+    rot = torch.from_numpy(df[['QW', 'QX', 'QY', 'QZ']].to_numpy())
+    R = gen_rotation(rot)
+    extrinsics = torch.empty(R.size(0), 3, 4)
+
+    extrinsics[:, :3, :3] = R
+    extrinsics[:, 0, 3] = torch.from_numpy(df['TX'].to_numpy())
+    extrinsics[:, 1, 3] = torch.from_numpy(df['TY'].to_numpy())
+    extrinsics[:, 2, 3] = torch.from_numpy(df['TZ'].to_numpy())
+        
+    return extrinsics, R, df['CAMERA_ID'].to_numpy()
+
+def read_cameras_colmap(camera_file_path:str):
     columns = ['CAM_ID', 'MODEL', 'W', 'H', 'FocalX', 'FocalY', 'PrincX', 'PrincY']
     columns_type = {
         'CAM_ID': int,
@@ -39,20 +54,30 @@ def read_cameras_colmap(camera_file_path:str) -> pd.DataFrame:
     with open(camera_file_path, 'r') as f:
         cam_lists = [x.split() for x in f.readlines()]
     df = pd.DataFrame(cam_lists, columns=columns).astype(columns_type)
-    return df
+
+    intrinsics = torch.zeros(df.shape[0], 3, 3)
+    intrinsics[:, 0, 0] = torch.from_numpy(df['FocalX'].to_numpy())
+    intrinsics[:, 1, 1] = torch.from_numpy(df['FocalY'].to_numpy())
+    intrinsics[:, 0, 2] = torch.from_numpy(df['PrincX'].to_numpy())
+    intrinsics[:, 1, 2] = torch.from_numpy(df['PrincY'].to_numpy())
+    intrinsics[:, 2, 2] = 1
+    return intrinsics, torch.from_numpy(df['W'].to_numpy()), torch.from_numpy(df['H'].to_numpy())
 
 def read_all(images_file_path:str, camera_file_path:str):
-    # img_info_df = read_images_colmap(images_file_path)
-    cam_info_df = read_cameras_colmap(camera_file_path)
+    extrinsics, R, cam_ids = read_images_colmap(images_file_path)
+    intrinsics, Ws, Hs = read_cameras_colmap(camera_file_path)
 
-    # gen instrinsic
-    instrinsics = torch.zeros(cam_info_df.shape[0], 3, 3)
+    
+    for idx, cam_id in enumerate(cam_ids):
+        cur_extrinsic = extrinsics[idx]
+        cur_intrinsic = intrinsics[cam_id]
+        cur_W = Ws[cam_id]
+        cur_H = Hs[cam_id]
+        w2img =  cur_intrinsic @ cur_extrinsic
+        
 
-    instrinsics[:, 0, 0] = torch.from_numpy(cam_info_df['FocalX'].to_numpy())
-    instrinsics[:, 1, 1] = torch.from_numpy(cam_info_df['FocalY'].to_numpy())
-    instrinsics[:, 0, 2] = torch.from_numpy(cam_info_df['PrincX'].to_numpy())
-    instrinsics[:, 1, 2] = torch.from_numpy(cam_info_df['PrincY'].to_numpy())
-    instrinsics[:, 2, 2] = 1
+
+
 
 
 
