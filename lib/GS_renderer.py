@@ -1,25 +1,60 @@
 import torch
+import matplotlib.pyplot as plt
+MAX_OPACIRY = torch.tensor([1.0], dtype=torch.float32, device='cuda')
+
+# todo:
+# - fix color range [ (out - out.min()) / (out.max() - out.min()) is not what should be done ]
+# - sort gs by depth
 
 def render(mean2D, cov2D, color, opacity, W, H, bg):
+    mi, ma = 1e9, -1e9
     inv = torch.inverse(cov2D)
-    conic = torch.tensor([inv[0,0], inv[0,1], inv[1,1]], dtype=torch.float32)
-    out = torch.zeros((W, H, 3), dtype=torch.float32)
-    for w in range(W):
-        for h in range(H):
-            point = torch.tensor([[w, h]], dtype=torch.float32)
+    out = torch.zeros((W, H, 3), dtype=torch.float32, device='cuda')
+    N = mean2D.shape[0]
+    for u in range(W):
+        for v in range(H):
+            point = torch.tensor([u, v], dtype=torch.float32, device='cuda')
             dis1 = mean2D - point
-            power = -0.5 * (inv[0, 0] * dis1[0] * dis1[0] + inv[1, 1] * dis1[1] * dis1[1]) - inv[0, 1] * dis1[0] * dis1[1]
-            if power > 0:
-                continue
-            alpha = torch.min(0.99, opacity[0] * torch.exp(power))
-            out[w, h, :] = (1 - alpha) * bg[w, h, :] + alpha * color[0]
-    return out
+            # print(dis1)
+            # print(point)
+            # print(inv)
+            # print(dis1.shape, inv.shape, N)
+            power = -0.5 * (dis1.view(N, 1, -1) @ inv @ dis1.view(N, -1, 1)).squeeze()
+            mi = min(mi, power.min().cpu().numpy())
+            ma = max(ma, power.max().cpu().numpy())
+            power[power > 0] = 0
+            # print(power)
+            alpha = torch.min(MAX_OPACIRY, opacity * torch.exp(power))
+            tran = torch.cat((torch.tensor([1], device='cuda'), 1-alpha))
+            tran = torch.cumprod(tran, 0)
+            weight = alpha * tran[:-1]
+            if (u,v) in [(110, 50), (210, 50)]:
+                print('a', alpha)
+                print('t', tran)
+                print('w', weight)
+                print('w @ c', weight @ color)
+                print()
+            # print(weight.shape, color.shape)
+            out[u, v, :] = weight @ color + bg[u, v, :] * (tran[-1])
+    return out, mi, ma
 
-w,h = 256,256
-mean2D = torch.tensor([[0, 0]], dtype=torch.float32)
-cov2D = torch.tensor([[1, 0], [0, 1]], dtype=torch.float32)
-color = torch.tensor([[[100, 0, 0]]], dtype=torch.float32)
-bg = torch.zeros((w,h,3), dtype=torch.float32)
-bg[:,:,1] = 255
-opacity = torch.tensor([[0.5]], dtype=torch.float32)
-out = render(mean2D, cov2D, color, opacity, w, h, bg)
+def render2(mean2D, cov2D, color, opacity, W, H, bg):
+    inv = torch.inverse(cov2D)
+    out = torch.zeros((W, H, 3), dtype=torch.float32, device='cuda')
+    point = torch.stack(torch.meshgrid(torch.arange(W), torch.arange(H)), dim=-1).reshape(-1, 2)
+
+w,h = 400, 300
+mean2D = torch.tensor([[100, 50], [120, 50]], dtype=torch.float32, device='cuda')
+cov2D = torch.tensor([[[100, 0], [0, 200]], [[300, 0], [0, 100]]], dtype=torch.float32, device='cuda')
+color = torch.tensor([[100, 0, 0], [0, 100, 0]], dtype=torch.float32, device='cuda')
+bg = torch.zeros((w,h,3), dtype=torch.float32, device='cuda')
+bg[:,:,2] = 0
+opacity = torch.tensor([0.8, 0.3], dtype=torch.float32, device='cuda')
+out, mi, ma = render(mean2D, cov2D, color, opacity, w, h, bg)
+out = out.permute(1, 0, 2)
+
+out = (out - out.min()) / (out.max() - out.min())
+
+print(mi, ma)
+plt.imshow(out.cpu().numpy())
+plt.show()
