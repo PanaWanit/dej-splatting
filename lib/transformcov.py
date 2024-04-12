@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import math
-from sh_utils import eval_sh
+from sh_utils import get_sh_color
 
 #################### Transform ############################
 
@@ -16,9 +16,7 @@ def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
 
 def build_color(means3D, shs, camera, sh_degree):
     rays_o = camera.camera_center
-    rays_d = means3D - rays_o
-    color = eval_sh(sh_degree, shs.permute(0,2,1), rays_d)
-    color = (color + 0.5).clip(min=0.0)
+    color = get_sh_color(sh_degree, means3D, rays_o, shs)
     return color
 
 
