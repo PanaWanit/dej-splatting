@@ -50,26 +50,17 @@ def gen_rotation(rot:torch.tensor):
 
     return R
 
-def get_covariance_3d(scale:torch.Tensor, rot:torch.Tensor):
-    """
-        1. Rotation
-        2. Scaling
-        3. Covariance
-    """
-
-    ## Rotation
-    R = gen_rotation(rot)
-
-    # Scaling
+def gen_scaling(scale:torch.tensor):
     S = torch.zeros((scale.size(0), 3, 3), device='cuda')
     S[:, 0, 0] = scale[:, 0]
     S[:, 1, 1] = scale[:, 1]
     S[:, 2, 2] = scale[:, 2]
 
-    # Build covariance
-    RS = R @ S # [Vec, 3, 3]
+    return S
 
-    return RS @ RS.transpose(1, 2) # 
+def get_covariance_3d(R, S):
+    RS = R @ S # [Vec, 3, 3]
+    return RS @ RS.transpose(1, 2)
 
 def get_covariance_2d(mean3d, cov3d, viewmatrix, fov_x, fov_y, focal_x, focal_y):
     tan_fovx = math.tan(fov_x * 0.5)

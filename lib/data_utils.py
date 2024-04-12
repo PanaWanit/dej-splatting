@@ -8,18 +8,7 @@ from transformcov import gen_rotation
 import imageio
 
 # Read images.txt
-def read_images_colmap(images_file_path : str):
-    def read_image(image_path, scale_factor):
-        image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
-        image_size = image.shape[:2]
-
-        if scale_factor != 1:
-            image_size[0] = image_size[0] * scale_factor
-            image_size[0] = image_size[1] * scale_factor
-            image = F.interpolate(image.permute(0, 3, 1, 2), scale_factor=scale_factor, mode='bilinear').permute(0, 2, 3, 1)
-
-        return image
-
+def read_images_colmap(images_file_path : str, scale_factor:float = 1):
 
     images_columns = ['IMAGE_ID', 'QW', 'QX', 'QY', 'QZ', 'TX', 'TY', 'TZ', 'CAMERA_ID', 'NAME']
     columns_type = {
@@ -49,8 +38,25 @@ def read_images_colmap(images_file_path : str):
     extrinsics[:, 0, 3] = torch.from_numpy(df['TX'].to_numpy())
     extrinsics[:, 1, 3] = torch.from_numpy(df['TY'].to_numpy())
     extrinsics[:, 2, 3] = torch.from_numpy(df['TZ'].to_numpy())
+
+    # Read image rgb with down sampling
+    def read_image(image_path, scale_factor):
+        image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
+        image_size = image.shape[:2]
+
+        if scale_factor != 1:
+            image_size[0] = image_size[0] * scale_factor
+            image_size[0] = image_size[1] * scale_factor
+            image = image.unsqueeze(0)
+            image = F.interpolate(image.permute(0, 3, 1, 2), scale_factor=scale_factor, mode='bilinear').permute(0, 2, 3, 1) # [B, C, H, W]
+            image = image.squeeze(0)
+
+        return image
+
+
+    rgbs = [read_image(img_path) for img_path in df['NAME']]
         
-    return extrinsics, R, df['CAMERA_ID'].to_numpy(), df['NAME'].apply(read_image)
+    return extrinsics, R, df['CAMERA_ID'].to_numpy(), rgbs
 
 def read_cameras_colmap(camera_file_path:str):
     columns = ['CAM_ID', 'MODEL', 'W', 'H', 'FocalX', 'FocalY', 'PrincX', 'PrincY']
@@ -77,22 +83,30 @@ def read_cameras_colmap(camera_file_path:str):
     return intrinsics, torch.from_numpy(df['W'].to_numpy()), torch.from_numpy(df['H'].to_numpy())
 
 def read_all(images_file_path:str, camera_file_path:str):
-    extrinsics, R, cam_ids = read_images_colmap(images_file_path)
+    extrinsics, R, cam_ids, rgbs = read_images_colmap(images_file_path)
     intrinsics, Ws, Hs = read_cameras_colmap(camera_file_path)
 
+    properties = []
     
     for idx, cam_id in enumerate(cam_ids):
         cur_extrinsic = extrinsics[idx]
+        cur_R = R[idx]
+        cur_rgb = rgbs[idx]
+
         cur_intrinsic = intrinsics[cam_id]
         cur_W = Ws[cam_id]
         cur_H = Hs[cam_id]
+
         w2img =  cur_intrinsic @ cur_extrinsic
+
+        properties.append({
+            'rgb': cur_rgb,
+            'H': cur_H,
+            'W': cur_W,
+            'R': cur_R,
+            'w2img': w2img
+        })
+    return properties
         
-
-
-
-
-
-
 if __name__ == '__main__':
     print(read_all('./images.txt', 'test_cam.txt'))
