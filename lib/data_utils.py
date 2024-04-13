@@ -44,6 +44,8 @@ def read_images_colmap(images_file_path : str, scale_factor:float = 1):
         image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
         image_size = image.shape[:2]
 
+        assert scale_factor <= 1, "scale_factor must be less than 1"
+
         if scale_factor != 1:
             image_size[0] = image_size[0] * scale_factor
             image_size[0] = image_size[1] * scale_factor
@@ -54,7 +56,7 @@ def read_images_colmap(images_file_path : str, scale_factor:float = 1):
         return image
 
 
-    rgbs = [read_image(img_path) for img_path in df['NAME']]
+    rgbs = [read_image(img_path, scale_factor) for img_path in df['NAME']]
         
     return extrinsics, R, df['CAMERA_ID'].to_numpy(), rgbs, df
 
