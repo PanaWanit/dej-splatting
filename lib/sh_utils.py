@@ -36,10 +36,21 @@ C4 = [
 
 
 def eval_sh(deg, sh, dirs):
-
-    # assert deg <= 4 and deg >= 0
-    # coeff = (deg + 1) ** 2
-    # assert sh.shape[-1] >= coeff
+    """
+    Evaluate spherical harmonics at unit directions
+    using hardcoded SH polynomials.
+    Works with torch/np/jnp.
+    ... Can be 0 or more batch dimensions.
+    Args:
+        deg: int SH deg. Currently, 0-3 supported
+        sh: jnp.ndarray SH coeffs [..., C, (deg + 1) ** 2]
+        dirs: jnp.ndarray unit directions [..., 3]
+    Returns:
+        [..., C]
+    """
+    assert deg <= 4 and deg >= 0
+    coeff = (deg + 1) ** 2
+    assert sh.shape[-1] >= coeff
 
     result = C0 * sh[..., 0]
     if deg > 0:

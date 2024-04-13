@@ -5,16 +5,15 @@ from lib.sh_utils import eval_sh
 
 #################### Transform ############################
 
-
 def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
-    points_o = torch.hstack([points, torch.ones(points.size(0), 1)])  # make it homogenous
-    points_h = points_o @ viewmatrix @ projmatrix  # projection
+    points_o = torch.hstack([points, torch.ones(points.size(0), 1)]) # make it homogenous
+    points_h = points_o @ viewmatrix @ projmatrix # projection
+
     p_w = 1.0 / (points_h[:, -1:] + eps)
     p_proj = points_h * p_w
     p_view = points_o @ viewmatrix
     mask = p_view[:, 2] >= 0.2
     return p_proj[mask], p_view[mask]
-
 
 def build_color(means3D, shs, camera, sh_degree):
     rays_o = camera.camera_center
@@ -41,26 +40,26 @@ def gen_rotation(rot: torch.tensor):
     y = q[:, 2]
     z = q[:, 3]
 
-    R[:, 0, 0] = 1 - 2 * (y * y + z * z)
-    R[:, 0, 1] = 2 * (x * y - r * z)
-    R[:, 0, 2] = 2 * (x * z + r * y)
-    R[:, 1, 0] = 2 * (x * y + r * z)
-    R[:, 1, 1] = 1 - 2 * (x * x + z * z)
-    R[:, 1, 2] = 2 * (y * z - r * x)
-    R[:, 2, 0] = 2 * (x * z - r * y)
-    R[:, 2, 1] = 2 * (y * z + r * x)
-    R[:, 2, 2] = 1 - 2 * (x * x + y * y)
+    R[:, 0, 0] = 1 - 2 * (y*y + z*z)
+    R[:, 0, 1] = 2 * (x*y - r*z)
+    R[:, 0, 2] = 2 * (x*z + r*y)
+    R[:, 1, 0] = 2 * (x*y + r*z)
+    R[:, 1, 1] = 1 - 2 * (x*x + z*z)
+    R[:, 1, 2] = 2 * (y*z - r*x)
+    R[:, 2, 0] = 2 * (x*z - r*y)
+    R[:, 2, 1] = 2 * (y*z + r*x)
+    R[:, 2, 2] = 1 - 2 * (x*x + y*y)
 
     return R
 
-
-def gen_scaling(scale: torch.tensor):
-    S = torch.zeros((scale.size(0), 3, 3), device="cuda")
+def gen_scaling(scale:torch.tensor):
+    S = torch.zeros((scale.size(0), 3, 3), device='cuda')
     S[:, 0, 0] = scale[:, 0]
     S[:, 1, 1] = scale[:, 1]
     S[:, 2, 2] = scale[:, 2]
 
     return S
+
 
 
 def get_covariance_3d(R, S):
@@ -80,6 +79,7 @@ def get_covariance_2d(mean3d, cov3d, w2img, image_df, camera_df):
     J[:, 0, 2] = -tx / (tz * tz) * focal_x
     J[:, 1, 1] = 1 / tz * focal_y
     J[:, 1, 2] = -ty / (tz * tz) * focal_y
+
 
     W = w2img[:3, :3]  # .T
     cov2d = J @ W @ cov3d @ W.T @ J.transpose(1, 2)
