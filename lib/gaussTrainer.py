@@ -1,15 +1,20 @@
 import os
-from accelerate import Accelerator
-from torch.optim import Adam
-from lib.data_utils import read_all
-from pathlib import Path
-import torch
 import numpy as np
 from tqdm import tqdm
+
+import torch
+from torch.optim import Adam
 from torch.profiler import profile, ProfilerActivity
-from lib.camera_utils import to_viewpoint_camera
-import lib.loss_utils as loss_utils
+
+from accelerate import Accelerator
+from pathlib import Path
+
 import lib as utils
+import lib.loss_utils as loss_utils
+from lib.data_utils import read_all, read_points3D_colmap
+from lib.camera_utils import to_viewpoint_camera
+from lib.point_utils import PointCloud
+
 
 import contextlib
 
@@ -26,12 +31,25 @@ class GaussTrainer:
         super().__init__()
 
         self.data = read_all(
-            os.path.join(config.database_path, "image.txt"),
-            os.path.join(config.database_path, "camera.txt"),
+            os.path.join(config.database_path, "images.txt"),
+            os.path.join(config.database_path, "cameras.txt"),
         )
+
+        points_df = read_points3D_colmap(os.path.join(config.database_path, "points3D.txt"))
+        points_coor = points_df[["X", "Y", "Z"]].to_numpy().T
+        channels = {
+            "R": points_df["R"].to_numpy() / 255.0,
+            "G": points_df["G"].to_numpy() / 255.0,
+            "B": points_df["B"].to_numpy() / 255.0,
+        }
+        points_cloud = PointCloud(points_coor, channels)
+        raw_points = points_cloud.random_sample(2**14)
+        model.create_from_pcd(raw_points)
 
         ##### TODO: Implement gauss renderer
         self.gaussRender = GaussRenderer(**kwargs.get("render_kwargs", {}))
+
+        # create_from_pcd from raw_points (sample from points_cloud)
         ###
 
         self.lambda_dssim = config.lambda_dssim
