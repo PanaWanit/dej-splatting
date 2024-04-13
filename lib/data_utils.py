@@ -110,7 +110,9 @@ def read_all(images_file_path: str, camera_file_path: str):
         properties.append({
             'rgb': cur_rgb,
             'R': cur_R,
+            'intrinsic': cur_intrinsic,
             'w2c': cur_extrinsic,
+            'c2w': cur_extrinsic.inverse(),
             'image_df': cur_image_df,
             'camera_df': cur_camera_df
         })
