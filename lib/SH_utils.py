@@ -56,7 +56,6 @@ def get_sh_color(deg, mean, cam_pos, sh):
     return torch.clip(sh_color, 0)
 
             
-            
 if __name__ == '__main__':
     mean = torch.tensor([[0, 0, 0], [1,-2,6]], dtype=torch.float32)
     cam_pos = torch.tensor([[2,4,9], [-6,2,3]], dtype=torch.float32)
@@ -69,3 +68,4 @@ if __name__ == '__main__':
     # sh = np.array([[1, 1, 2, 3], [1, 1, 2, 3]], dtype=np.float32)
 
     print(get_sh_color(2, mean, cam_pos, sh))
+

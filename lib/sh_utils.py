@@ -25,6 +25,7 @@ def get_sh_color(deg, mean, cam_pos, sh):
 
     sh_color = coeff0 * sh[..., 0]
 
+
     if deg > 0:
         x, y, z = dir[:, 0:1], dir[:, 1:2], dir[:, 2:3]
         sh_color = (sh_color -
