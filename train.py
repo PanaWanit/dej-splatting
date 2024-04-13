@@ -40,5 +40,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     # TODO: Add Gauss Model
+
     # gauss_model = GaussModel()
     trainer = GaussTrainer(gauss_model, args=args)

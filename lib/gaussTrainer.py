@@ -6,6 +6,8 @@ from pathlib import Path
 import torch
 import numpy as np
 from tqdm import tqdm
+from torch.profiler import profile, ProfilerActivity
+from lib.camera_utils import to_viewpoint_camera
 
 import contextlib
 
@@ -111,15 +113,13 @@ class GaussTrainer:
 
     def on_train_step(self):
         # TODO: adapt to index
-        ind = np.random.choice(len(self.data["camera"]))
-        camera = self.data["camera"][ind]
-        rgb = self.data["rgb"][ind]
-        depth = self.data["depth"][ind]
-        mask = self.data["alpha"][ind] > 0.5
+        ind = np.random.choice(len(self.data))
+        data = self.data[ind]
+
         # TODO: Implement camera util
         # NOTE: to_view_point pass data instead
         if USE_GPU_PYTORCH:
-            camera = to_viewpoint_camera(self.data[ind])
+            camera = to_viewpoint_camera(data["w2c"], data["camera_df"])
 
         if USE_PROFILE:
             prof = profile(activities=[ProfilerActivity.CUDA], with_stack=True)
