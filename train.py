@@ -43,3 +43,6 @@ if __name__ == "__main__":
 
     # gauss_model = GaussModel()
     trainer = GaussTrainer(gauss_model, args=args)
+
+    trainer.on_evaluate_step()
+    trainer.train()

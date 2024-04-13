@@ -8,6 +8,8 @@ import numpy as np
 from tqdm import tqdm
 from torch.profiler import profile, ProfilerActivity
 from lib.camera_utils import to_viewpoint_camera
+import lib.loss_utils as loss_utils
+import lib as utils
 
 import contextlib
 
@@ -131,14 +133,17 @@ class GaussTrainer:
 
         if USE_PROFILE:
             print(prof.key_averages(group_by_stack_n=True).table(sort_by="self_cuda_time_total", row_limit=20))
-        # TODO: Implement loss utils
-        l1_loss = loss_utils.l1_loss(out["render"], rgb)
-        depth_loss = loss_utils.l1_loss(out["depth"][..., 0][mask], depth[mask])
-        ssim_loss = 1.0 - loss_utils.ssim(out["render"], rgb)
 
-        total_loss = (1 - self.lambda_dssim) * l1_loss + self.lambda_dssim * ssim_loss + depth_loss * self.lambda_depth
-        psnr = utils.img2psnr(out["render"], rgb)
-        log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "depth": depth_loss, "psnr": psnr}
+        l1_loss = loss_utils.l1_loss(out["render"], data["rgb"])
+        # depth_loss = loss_utils.l1_loss(out["depth"][..., 0][mask], depth[mask]) # we don't have depth
+        ssim_loss = 1.0 - loss_utils.ssim(out["render"], data["rgb"])
+
+        total_loss = (
+            1 - self.lambda_dssim
+        ) * l1_loss + self.lambda_dssim * ssim_loss  # + depth_loss * self.lambda_depth
+        psnr = utils.img2psnr(out["render"], data["rgb"])
+        # log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "depth": depth_loss, "psnr": psnr}
+        log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "psnr": psnr}
 
         return total_loss, log_dict
 
