@@ -1,5 +1,6 @@
 import torch
 
+
 coeff0 = 0.28209479177387814
 coeff1 = 0.4886025119029199
 coeff2 = [
@@ -18,6 +19,12 @@ coeff3 = [
     1.445305721320277,
     -0.5900435899266435
 ]
+
+def RGB2SH(rgb):
+    return (rgb - 0.5) / coeff0
+
+def SH2RGB(sh):
+    return sh * coeff0 + 0.5
 
 def get_sh_color(deg, mean, cam_pos, sh):
     dir = cam_pos - mean

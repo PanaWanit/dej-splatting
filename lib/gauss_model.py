@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from gauss_utils import *
-from point_utils import PointCloud
-from sh_utils import RGB2SH
+from lib.gauss_utils import *
+from lib.point_utils import PointCloud
+from lib.sh_utils import RGB2SH
 from plyfile import PlyData, PlyElement
 
 class GaussModel(nn.Module):
