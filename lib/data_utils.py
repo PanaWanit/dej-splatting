@@ -36,9 +36,9 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
     extrinsics = torch.zeros(R.size(0), 4, 4)
 
     extrinsics[:, :3, :3] = R
-    extrinsics[:, 0, 3] = torch.from_numpy(df['TX'].to_numpy())
-    extrinsics[:, 1, 3] = torch.from_numpy(df['TY'].to_numpy())
-    extrinsics[:, 2, 3] = torch.from_numpy(df['TZ'].to_numpy())
+    extrinsics[:, 0, 3] = torch.from_numpy(df["TX"].to_numpy())
+    extrinsics[:, 1, 3] = torch.from_numpy(df["TY"].to_numpy())
+    extrinsics[:, 2, 3] = torch.from_numpy(df["TZ"].to_numpy())
     extrinsics[:, 3, 3] = torch.ones_like(extrinsics[:, 3, 3])
 
     # Read image rgb with down sampling
@@ -62,7 +62,7 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
     dir = os.path.dirname(images_file_path)
     rgbs = [read_image(os.path.join(dir, img_path), scale_factor) for img_path in df["NAME"]]
 
-    return extrinsics, R, df["CAMERA_ID"].to_numpy()-1, rgbs, df
+    return extrinsics, R, df["CAMERA_ID"].to_numpy() - 1, rgbs, df
 
 
 def read_cameras_colmap(camera_file_path: str):
@@ -106,20 +106,22 @@ def read_all(images_file_path: str, camera_file_path: str, scale_factor: float =
         cur_image_df = image_df.iloc[idx]
         cur_camera_df = camera_df.iloc[cam_id]
 
-        scaledWs = int(Ws * scale_factor)
-        scaledHs = int(Hs * scale_factor)
+        scaledW = int(Ws[cam_id] * scale_factor)
+        scaledH = int(Hs[cam_id] * scale_factor)
 
-        properties.append({
-            'rgb': cur_rgb,
-            'scaledWs': scaledWs,
-            'scaledHs': scaledHs,
-            'R': cur_R,
-            'intrinsic': cur_intrinsic,
-            'w2c': cur_extrinsic,
-            'c2w': cur_extrinsic.inverse(),
-            'image_df': cur_image_df,
-            'camera_df': cur_camera_df
-        })
+        properties.append(
+            {
+                "rgb": cur_rgb,
+                "scaledW": scaledW,
+                "scaledH": scaledH,
+                "R": cur_R,
+                "intrinsic": cur_intrinsic,
+                "w2c": cur_extrinsic,
+                "c2w": cur_extrinsic.inverse(),
+                "image_df": cur_image_df,
+                "camera_df": cur_camera_df,
+            }
+        )
     return properties
 
 

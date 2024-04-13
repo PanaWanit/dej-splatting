@@ -47,7 +47,9 @@ class GaussTrainer:
         model.create_from_pcd(raw_points)
 
         ##### TODO: Implement gauss renderer
-        self.gaussRender = GaussRenderer(**kwargs.get("render_kwargs", {}))
+        self.gaussRender = GaussRenderer(
+            **kwargs.get("render_kwargs", {}), width=self.data[0]["scaledW"], height=self.data[0]["scaledH"]
+        )
 
         # create_from_pcd from raw_points (sample from points_cloud)
         ###
