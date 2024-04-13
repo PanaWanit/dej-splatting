@@ -1,5 +1,3 @@
-
-
 def RGB2SH(rgb):
     return (rgb - 0.5) / C0
 
