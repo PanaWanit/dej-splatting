@@ -59,9 +59,10 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
 
         return image
 
-    rgbs = [read_image(img_path, scale_factor) for img_path in df["NAME"]]
+    dir = os.path.dirname(images_file_path)
+    rgbs = [read_image(os.path.join(dir, img_path), scale_factor) for img_path in df["NAME"]]
 
-    return extrinsics, R, df["CAMERA_ID"].to_numpy(), rgbs, df
+    return extrinsics, R, df["CAMERA_ID"].to_numpy()-1, rgbs, df
 
 
 def read_cameras_colmap(camera_file_path: str):
