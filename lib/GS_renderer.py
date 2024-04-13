@@ -40,8 +40,7 @@ if __name__ == '__main__':
 
     out = render(mean2D, depth, cov2D, color, opacity, w, h, bg)
     out = (out - out.min()) / (out.max() - out.min())
-    # plt.imshow(out.cpu().numpy())
-    # plt.show()
+
     print(out.cpu().numpy().shape)
     plt.imshow(out.cpu().numpy())
     plt.show()

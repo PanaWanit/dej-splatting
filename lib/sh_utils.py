@@ -1,5 +1,6 @@
 import torch
 
+
 coeff0 = 0.28209479177387814
 coeff1 = 0.4886025119029199
 coeff2 = [
@@ -18,6 +19,12 @@ coeff3 = [
     1.445305721320277,
     -0.5900435899266435
 ]
+
+def RGB2SH(rgb):
+    return (rgb - 0.5) / coeff0
+
+def SH2RGB(sh):
+    return sh * coeff0 + 0.5
 
 def get_sh_color(deg, mean, cam_pos, sh):
     dir = cam_pos - mean
@@ -55,17 +62,16 @@ def get_sh_color(deg, mean, cam_pos, sh):
     sh_color += 0.5
     return torch.clip(sh_color, 0)
 
-            
-            
 
-# mean = torch.tensor([[0, 0, 0], [1,-2,6]], dtype=torch.float32)
-# cam_pos = torch.tensor([[2,4,9], [-6,2,3]], dtype=torch.float32)
+if __name__ == '__main__':
+    mean = torch.tensor([[0, 0, 0], [1,-2,6]], dtype=torch.float32)
+    cam_pos = torch.tensor([[2,4,9], [-6,2,3]], dtype=torch.float32)
 
-# sh = torch.tensor([[1, 1, 2, 3,5,-2,4,-6,2], [2, 1, 2, 3,1,2,4,1,-1], [1, 1, 2, 3,1,2,4,1,-1]], dtype=torch.float32)
+    sh = torch.tensor([[1, 1, 2, 3,5,-2,4,-6,2], [2, 1, 2, 3,1,2,4,1,-1], [1, 1, 2, 3,1,2,4,1,-1]], dtype=torch.float32)
 
-# # mean = np.array([[0, 0, 0], [1,-2,6]], dtype=np.float32)
-# # cam_pos = np.array([[2,4,9], [-6,2,3]], dtype=np.float32)
+    # mean = np.array([[0, 0, 0], [1,-2,6]], dtype=np.float32)
+    # cam_pos = np.array([[2,4,9], [-6,2,3]], dtype=np.float32)
 
-# # sh = np.array([[1, 1, 2, 3], [1, 1, 2, 3]], dtype=np.float32)
+    # sh = np.array([[1, 1, 2, 3], [1, 1, 2, 3]], dtype=np.float32)
 
-# print(get_sh_color(2, mean, cam_pos, sh))
+    print(get_sh_color(2, mean, cam_pos, sh))

@@ -16,6 +16,7 @@ if __name__ == "__main__":
     %      |- .....
     %      |- image.txt
     %      |- camera.txt
+    %      |- points3D.txt
     """
     parser.add_argument("--results_folder", type=str, default="./result", help="Output folder")
     parser.add_argument("--lr", type=float, default=1e-2, help="Train learning rate")
