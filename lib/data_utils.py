@@ -32,12 +32,13 @@ def read_images_colmap(images_file_path : str, scale_factor:float = 1):
     # Compute extrinsic
     rot = torch.from_numpy(df[['QW', 'QX', 'QY', 'QZ']].to_numpy())
     R = gen_rotation(rot)
-    extrinsics = torch.empty(R.size(0), 3, 4)
+    extrinsics = torch.zeros(R.size(0), 4, 4)
 
     extrinsics[:, :3, :3] = R
     extrinsics[:, 0, 3] = torch.from_numpy(df['TX'].to_numpy())
     extrinsics[:, 1, 3] = torch.from_numpy(df['TY'].to_numpy())
     extrinsics[:, 2, 3] = torch.from_numpy(df['TZ'].to_numpy())
+    extrinsics[:, 3, 3] = torch.ones_like(extrinsics[:, 3, 3])
 
     # Read image rgb with down sampling
     def read_image(image_path, scale_factor):
@@ -100,12 +101,12 @@ def read_all(images_file_path:str, camera_file_path:str):
         cur_image_df = image_df.iloc[idx]
         cur_camera_df = camera_df.iloc[cam_id]
 
-        w2img =  cur_intrinsic @ cur_extrinsic
+        #w2img =  cur_intrinsic @ cur_extrinsic
 
         properties.append({
             'rgb': cur_rgb,
             'R': cur_R,
-            'w2img': w2img,
+            'w2c': cur_extrinsic,
             'image_df': cur_image_df,
             'camera_df': cur_camera_df
         })
