@@ -122,3 +122,22 @@ def read_all(images_file_path: str, camera_file_path: str):
 
 if __name__ == "__main__":
     print(read_all("./images.txt", "test_cam.txt"))
+
+
+def read_points3D_colmap(point3D_file_path: str):
+    point3D_columns = ["POINT3D_ID", "X", "Y", "Z", "R", "G", "B"]
+    columns_type = {
+        "POINT3D_ID": int,
+        "X": float,
+        "Y": float,
+        "Z": float,
+        "R": int,
+        "G": int,
+        "B": int,
+    }
+
+    with open(point3D_file_path) as f:
+        point3D_list = [line.split()[:7] for line in f.readlines()]
+
+    df = pd.DataFrame(point3D_list, columns=point3D_columns).astype(columns_type)
+    return df
