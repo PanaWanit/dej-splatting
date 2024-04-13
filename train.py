@@ -42,7 +42,10 @@ if __name__ == "__main__":
     # TODO: Add Gauss Model
 
     # gauss_model = GaussModel()
-    trainer = GaussTrainer(gauss_model, args=args)
+    render_kwargs = {
+        "white_bkgd": True,
+    }
+    trainer = GaussTrainer(gauss_model, args=args, render_kwargs=render_kwargs)
 
     trainer.on_evaluate_step()
     trainer.train()
