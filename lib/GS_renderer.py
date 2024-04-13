@@ -6,11 +6,18 @@ MAX_OPACIRY = torch.tensor([1.0], dtype=torch.float32, device='cuda')
 # - fix color range [ (out - out.min()) / (out.max() - out.min()) is not what should be done ]
 # - sort gs by depth
 
-def render(mean2D, cov2D, color, opacity, W, H, bg):
+def render(mean2D, depth, cov2D, color, opacity, W, H, bg):
+    idx = torch.argsort(depth)
+    mean2D = mean2D[idx]
+    cov2D = cov2D[idx]
+    color = color[idx]
+    opacity = opacity[idx]
+
     mi, ma = 1e9, -1e9
     inv = torch.inverse(cov2D)
     out = torch.zeros((W, H, 3), dtype=torch.float32, device='cuda')
     N = mean2D.shape[0]
+
     for u in range(W):
         for v in range(H):
             point = torch.tensor([u, v], dtype=torch.float32, device='cuda')
@@ -45,16 +52,18 @@ def render2(mean2D, cov2D, color, opacity, W, H, bg):
 
 w,h = 400, 300
 mean2D = torch.tensor([[100, 50], [120, 50]], dtype=torch.float32, device='cuda')
+depth = torch.tensor([300, 200], dtype=torch.float32, device='cuda')
 cov2D = torch.tensor([[[100, 0], [0, 200]], [[300, 0], [0, 100]]], dtype=torch.float32, device='cuda')
 color = torch.tensor([[100, 0, 0], [0, 100, 0]], dtype=torch.float32, device='cuda')
 bg = torch.zeros((w,h,3), dtype=torch.float32, device='cuda')
 bg[:,:,2] = 0
-opacity = torch.tensor([0.8, 0.3], dtype=torch.float32, device='cuda')
-out, mi, ma = render(mean2D, cov2D, color, opacity, w, h, bg)
+opacity = torch.tensor([0.8, 0.8], dtype=torch.float32, device='cuda')
+out, mi, ma = render(mean2D, depth, cov2D, color, opacity, w, h, bg)
 out = out.permute(1, 0, 2)
 
 out = (out - out.min()) / (out.max() - out.min())
 
 print(mi, ma)
-plt.imshow(out.cpu().numpy())
-plt.show()
+# plt.imshow(out.cpu().numpy())
+# plt.show()
+plt.imsave('./lib/render/test_fn.png', out.cpu().numpy())
