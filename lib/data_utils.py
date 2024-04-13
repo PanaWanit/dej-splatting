@@ -91,13 +91,11 @@ def read_all(images_file_path:str, camera_file_path:str):
     properties = []
     
     for idx, cam_id in enumerate(cam_ids):
+        cur_intrinsic = intrinsics[cam_id]
         cur_extrinsic = extrinsics[idx]
+
         cur_R = R[idx]
         cur_rgb = rgbs[idx]
-
-        cur_intrinsic = intrinsics[cam_id]
-        cur_W = Ws[cam_id]
-        cur_H = Hs[cam_id]
 
         cur_image_df = image_df.iloc[idx]
         cur_camera_df = camera_df.iloc[cam_id]
@@ -106,8 +104,6 @@ def read_all(images_file_path:str, camera_file_path:str):
 
         properties.append({
             'rgb': cur_rgb,
-            'H': cur_H,
-            'W': cur_W,
             'R': cur_R,
             'w2img': w2img,
             'image_df': cur_image_df,
