@@ -2,13 +2,16 @@ import torch
 import torch.nn as nn
 import math
 
-from sh_utils import get_sh_color
+from lib.sh_utils import get_sh_color
 
 #################### Transform ############################
 
 
 def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
-    points_o = torch.hstack([points, torch.ones(points.size(0), 1)])  # make it homogenous
+    points_o = torch.hstack([points, torch.ones(points.size(0), 1, device='cuda')])  # make it homogenous
+    viewmatrix = viewmatrix.to('cuda')
+    projmatrix = projmatrix.to('cuda')
+    print(viewmatrix.shape, projmatrix.shape)
     points_h = points_o @ viewmatrix @ projmatrix  # projection
 
     p_w = 1.0 / (points_h[:, -1:] + eps)
@@ -64,11 +67,12 @@ def gen_scaling(scale: torch.tensor):
 
 
 def get_covariance_3d(R, S):
+    print('rs', R.shape, S.shape)
     RS = R @ S  # [Vec, 3, 3]
     return RS @ RS.transpose(1, 2)
 
 
-def get_covariance_2d(mean3d, cov3d, w2img, image_df, camera_df):
+def get_covariance_2d(mean3d, cov3d, w2cam, image_df, camera_df):
     focal_x, focal_y = camera_df["FocalX"], camera_df["FocalY"]
 
     tx = image_df["TX"]
@@ -81,7 +85,7 @@ def get_covariance_2d(mean3d, cov3d, w2img, image_df, camera_df):
     J[:, 1, 1] = 1 / tz * focal_y
     J[:, 1, 2] = -ty / (tz * tz) * focal_y
 
-    W = w2img[:3, :3]  # .T
+    W = w2cam[:3, :3]  # .T
     cov2d = J @ W @ cov3d @ W.T @ J.transpose(1, 2)
 
     filter = torch.eye(2, 2).to(cov2d) * 0.3

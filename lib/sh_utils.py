@@ -1,6 +1,5 @@
 import torch
 
-
 coeff0 = 0.28209479177387814
 coeff1 = 0.4886025119029199
 coeff2 = [
@@ -20,13 +19,9 @@ coeff3 = [
     -0.5900435899266435
 ]
 
-def RGB2SH(rgb):
-    return (rgb - 0.5) / coeff0
-
-def SH2RGB(sh):
-    return sh * coeff0 + 0.5
-
 def get_sh_color(deg, mean, cam_pos, sh):
+    print(mean.shape, cam_pos.shape, sh.shape)
+    mean, cam_pos, sh = mean.cuda(), cam_pos.cuda(), sh.cuda()
     dir = cam_pos - mean
     dir = dir / torch.norm(dir, dim=1, keepdim=True)
 
@@ -62,6 +57,11 @@ def get_sh_color(deg, mean, cam_pos, sh):
     sh_color += 0.5
     return torch.clip(sh_color, 0)
 
+def RGB2SH(rgb):
+    return (rgb - 0.5) / coeff0
+
+def SH2RGB(sh):
+    return sh * coeff0 + 0.5
 
 if __name__ == '__main__':
     mean = torch.tensor([[0, 0, 0], [1,-2,6]], dtype=torch.float32)

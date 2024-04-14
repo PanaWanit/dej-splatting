@@ -4,6 +4,11 @@ import argparse
 import os
 from lib.data_utils import read_all
 from lib.gaussTrainer import GaussTrainer
+from lib.gauss_model import GaussModel
+
+
+USE_GPU_PYTORCH = True
+USE_PROFILE = False
 
 if __name__ == "__main__":
     device = "cuda"
@@ -24,7 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=25000, help="Training epochs")
 
     parser.add_argument("--gradient_accumulate_every", type=int, default=1)
-    parser.add_argument("--adam_betas", type=tuple(float, float), default=(0.9, 0.99), help="Training epochs")
+    parser.add_argument("--adam_betas", type=tuple, default=(0.9, 0.99), help="Training epochs")
 
     parser.add_argument("--i_print", type=int, default=100)
     parser.add_argument("--i_image", type=int, default=1000)
@@ -34,19 +39,18 @@ if __name__ == "__main__":
     parser.add_argument("--amp", type=bool, default=False)
     parser.add_argument("--fp16", type=bool, default=False)
     parser.add_argument("--with_tracking", type=bool, default=False)
-
-    # Gauss part
     parser.add_argument("--lambda_dssim", type=float, default=0.2)
-    parser.add_argument("--lambda_depth", type=float, default=0.0)
+    parser.add_argument("--lambda_depth", type=float, default=0.2)
 
+    # Gauss partGaussModel()
     args = parser.parse_args()
     # TODO: Add Gauss Model
 
-    # gauss_model = GaussModel()
+    gauss_model = GaussModel()
     render_kwargs = {
         "white_bkgd": True,
     }
-    trainer = GaussTrainer(gauss_model, args=args, render_kwargs=render_kwargs)
+    trainer = GaussTrainer(gauss_model, config=args, render_kwargs=render_kwargs)
 
     trainer.on_evaluate_step()
     trainer.train()

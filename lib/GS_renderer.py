@@ -1,7 +1,8 @@
 import torch
 from torch import nn
-from sh_utils import get_sh_color
-from transformcov import *
+from lib.sh_utils import get_sh_color
+from lib.transformcov import *
+import contextlib
 MAX_OPACITY = torch.tensor([0.99], dtype=torch.float32, device='cuda')
 
 def render(mean2D, depth, cov2D, color, opacity, W, H, bg):
@@ -32,6 +33,9 @@ def render(mean2D, depth, cov2D, color, opacity, W, H, bg):
 class GaussRenderer(nn.Module):
     def __init__(self, active_sh_degree=3, white_bkgd=True, width=256, height=256, **kwargs):
         super(GaussRenderer, self).__init__()
+
+        self.USE_GPU_PYTORCH = True
+        self.USE_PROFILE = False
         self.active_sh_degree = active_sh_degree
         self.debug = False
         self.W = width
@@ -77,34 +81,33 @@ class GaussRenderer(nn.Module):
         rotations = pc.get_rotation
         shs = pc.get_features
         
-        if USE_PROFILE:
+        if self.USE_PROFILE:
             prof = profiler.record_function
         else:
             prof = contextlib.nullcontext
             
         with prof("projection"):
-            mean_ndc, mean_view, in_mask = projection_ndc(means3D, 
+            mean_ndc, mean_view = projection_ndc(means3D, 
                     viewmatrix=camera.world_view_transform, 
                     projmatrix=camera.projection_matrix)
-            mean_ndc = mean_ndc[in_mask]
-            mean_view = mean_view[in_mask]
+            # mean_ndc = mean_ndc[in_mask]
+            # mean_view = mean_view[in_mask]
             depths = mean_view[:,2]
         
         with prof("build color"):
-            color = build_color(means3D=means3D, shs=shs, camera=camera)
+            color = build_color(means3D=means3D, sh_degree=3, shs=shs, camera=camera)
         
         with prof("build cov3d"):
-            cov3d = get_covariance_3d(scales, rotations)
+            S = gen_scaling(scales)
+            R = gen_rotation(rotations)
+            cov3d = get_covariance_3d(R, S)
             
         with prof("build cov2d"):
             cov2d = get_covariance_2d(
                 mean3d=means3D, 
                 cov3d=cov3d, 
-                viewmatrix=camera.world_view_transform,
-                fov_x=camera.FoVx, 
-                fov_y=camera.FoVy, 
-                focal_x=camera.focal_x, 
-                focal_y=camera.focal_y)
+                w2cam=camera.world_view_transform,
+                )
 
             mean_coord_x = ((mean_ndc[..., 0] + 1) * camera.image_width - 1.0) * 0.5
             mean_coord_y = ((mean_ndc[..., 1] + 1) * camera.image_height - 1.0) * 0.5

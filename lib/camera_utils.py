@@ -19,7 +19,7 @@ class Camera(nn.Module):
         self.FoVy = focal2fov(self.focal_y, camera_df['H'])
         self.image_width = camera_df['W']
         self.image_height = camera_df['H']
-        self.world_view_transform = w2c
+        self.world_view_transform = w2c.transpose(0,1).to(device)
         self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1).to(device)
         self.camera_center = self.world_view_transform.inverse()[3, :3]
 

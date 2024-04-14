@@ -62,10 +62,13 @@ class GaussModel(nn.Module):
         features = torch.zeros((fused_color.shape[0], 3, (self.max_sh_degree + 1) ** 2)).float().cuda()
         features[:, :3, 0 ] = fused_color
         features[:, 3:, 1:] = 0.0
+        print('features', features.shape)
 
         dist2 = torch.clamp_min(distCUDA2(torch.from_numpy(np.asarray(points)).float().cuda()), 0.0000001)
         scales = torch.log(torch.sqrt(dist2))[...,None].repeat(1, 3)
+        print('scale', scales.shape)
         rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
+        print('fuse', fused_point_cloud.shape)
         rots[:, 0] = 1
         opacities = inverse_sigmoid(0.1 * torch.ones((fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"))
 
@@ -92,7 +95,7 @@ class GaussModel(nn.Module):
     
     @property
     def get_features(self):
-        return torch.cat((self._features_dc, self._features_rest), dim=1)
+        return torch.cat((self._features_dc, self._features_rest), dim=1).transpose(1, 2).contiguous()
     
     @property
     def get_opacity(self):
