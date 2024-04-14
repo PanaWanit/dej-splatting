@@ -21,7 +21,7 @@ class GaussModel(nn.Module):
     """
     def __init__(self, sh_degree: int=3):
         super(GaussModel, self).__init__()
-        self.sh_degree = sh_degree
+        self.max_sh_degree = sh_degree
         self._xyz = torch.empty(0)
         self._features_dc = torch.empty(0)
         self._features_rest = torch.empty(0)
