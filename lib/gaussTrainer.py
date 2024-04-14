@@ -141,7 +141,7 @@ class GaussTrainer:
         # TODO: Implement camera util
         # NOTE: to_view_point pass data instead
         if self.USE_GPU_PYTORCH:
-            camera = to_viewpoint_camera(data["w2c"], data["camera_df"])
+            camera = to_viewpoint_camera(data)
 
         if self.USE_PROFILE:
             prof = profile(activities=[ProfilerActivity.CUDA], with_stack=True)

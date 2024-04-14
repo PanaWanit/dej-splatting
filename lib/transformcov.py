@@ -72,12 +72,11 @@ def get_covariance_3d(R, S):
     return RS @ RS.transpose(1, 2)
 
 
-def get_covariance_2d(mean3d, cov3d, w2cam, image_df, camera_df):
-    focal_x, focal_y = camera_df["FocalX"], camera_df["FocalY"]
+def get_covariance_2d(mean3d, cov3d, w2cam, focal_x, focal_y, trans):
 
-    tx = image_df["TX"]
-    ty = image_df["TY"]
-    tz = image_df["TZ"]
+    tx = trans[0]
+    ty = trans[1]
+    tz = trans[2]
 
     J = torch.zeros(mean3d.shape[0], 3, 3).to(mean3d)
     J[:, 0, 0] = 1 / tz * focal_x

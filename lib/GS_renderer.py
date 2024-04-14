@@ -107,6 +107,9 @@ class GaussRenderer(nn.Module):
                 mean3d=means3D, 
                 cov3d=cov3d, 
                 w2cam=camera.world_view_transform,
+                focal_x=camera.focal_x, 
+                focal_y=camera.focal_y, 
+                trans=camera.trans
                 )
 
             mean_coord_x = ((mean_ndc[..., 0] + 1) * camera.image_width - 1.0) * 0.5

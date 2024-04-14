@@ -4,14 +4,15 @@ import math
 import numpy as np
 
 def to_viewpoint_camera(data):
-    camera = Camera(data['w2c'], data['camera_df'])
+    camera = Camera(data['w2c'], data['camera_df'], data['image_df'])
     return camera
 
 class Camera(nn.Module):
-    def __init__(self, w2c, camera_df, znear=0.1, zfar=100):
+    def __init__(self, w2c, camera_df, image_df, znear=0.1, zfar=100):
         super(Camera, self).__init__()
         device = w2c.device
         self.znear = znear
+        self.trans = torch.cat(image_df['TX'], image_df['TY'], image_df['TZ']).to(device)
         self.zfar = zfar
         self.focal_x = camera_df['FocalX']
         self.focal_y = camera_df['FocalY']
