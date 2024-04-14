@@ -20,8 +20,7 @@ coeff3 = [
 ]
 
 def get_sh_color(deg, mean, cam_pos, sh):
-    print(mean.shape, cam_pos.shape, sh.shape)
-    mean, cam_pos, sh = mean.cuda(), cam_pos.cuda(), sh.cuda()
+    # print(mean.shape, cam_pos.shape, sh.shape)
     dir = cam_pos - mean
     dir = dir / torch.norm(dir, dim=1, keepdim=True)
 
@@ -54,7 +53,7 @@ def get_sh_color(deg, mean, cam_pos, sh):
                 + coeff3[5] * sh[..., 14] * z * (xx - yy)
                 + coeff3[6] * sh[..., 15] * x * (xx - 3*yy))
     
-    sh_color += 0.5
+    sh_color = sh_color + 0.5
     return torch.clip(sh_color, 0)
 
 def RGB2SH(rgb):
@@ -74,4 +73,4 @@ if __name__ == '__main__':
 
     # sh = np.array([[1, 1, 2, 3], [1, 1, 2, 3]], dtype=np.float32)
 
-    print(get_sh_color(2, mean, cam_pos, sh))
+    # print(get_sh_color(2, mean, cam_pos, sh))

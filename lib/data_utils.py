@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 import torch
-import torch.functional as F
+import torch.nn.functional as F
 from torch import nn
 from lib.transformcov import gen_rotation
 import imageio
@@ -31,9 +31,9 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
     df = pd.DataFrame(images_list, columns=images_columns).astype(columns_type)
 
     # Compute extrinsic
-    rot = torch.from_numpy(df[["QW", "QX", "QY", "QZ"]].to_numpy())
+    rot = torch.from_numpy(df[["QW", "QX", "QY", "QZ"]].to_numpy()).cuda()
     R = gen_rotation(rot)
-    extrinsics = torch.zeros(R.size(0), 4, 4)
+    extrinsics = torch.zeros(R.size(0), 4, 4).cuda()
 
     extrinsics[:, :3, :3] = R
     extrinsics[:, 0, 3] = torch.from_numpy(df["TX"].to_numpy())
@@ -44,18 +44,18 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
     # Read image rgb with down sampling
     def read_image(image_path, scale_factor):
         image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
-        image_size = image.shape[:2]
+        image_size = list(image.size()[:2])
 
         assert scale_factor <= 1, "scale_factor must be less than 1"
 
         if scale_factor != 1:
             image_size[0] = image_size[0] * scale_factor
-            image_size[0] = image_size[1] * scale_factor
+            image_size[1] = image_size[1] * scale_factor
             image = image.unsqueeze(0)
             image = F.interpolate(image.permute(0, 3, 1, 2), scale_factor=scale_factor, mode="bilinear").permute(
                 0, 2, 3, 1
             )  # [B, C, H, W]
-            image = image.squeeze(0)
+            image = image.squeeze(0).cuda()
 
         return image
 

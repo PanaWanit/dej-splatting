@@ -14,7 +14,7 @@ def render(mean2D, depth, cov2D, color, opacity, W, H, bg):
 
     inv = torch.inverse(cov2D)
     out = torch.zeros((W * H, 3), dtype=torch.float32, device='cuda')
-    point = torch.stack(torch.meshgrid(torch.arange(W), torch.arange(H), indexing='ij'), dim=-1).to('cuda').reshape(-1, 2)
+    point = torch.stack(torch.meshgrid(torch.arange(W), torch.arange(H), indexing='ij'), dim=-1).reshape(-1, 2)
     # print(point)
     dis1 = mean2D.view(1, -1, 2) - point.view(-1, 1, 2)
     N = mean2D.shape[0]
@@ -43,15 +43,16 @@ class GaussRenderer(nn.Module):
         self.bg = torch.zeros((self.W, self.H, 3), dtype=torch.float32, device='cuda')
         self.point = torch.stack(torch.meshgrid(torch.arange(self.W), torch.arange(self.H), indexing='ij'), dim=-1).to('cuda').view(-1, 1, 2)
     
-    def render(self, camera, means2D, depth, cov2D, color, opacity):
-        W = camera.image_width
-        H = camera.image_height
-        idx = torch.argsort(depth)
+    def render(self, camera, means2D, depths, cov2D, color, opacity):
+        W = self.W
+        H = self.H
+        idx = torch.argsort(depths)
         means2D = means2D[idx]
         cov2D = cov2D[idx]
         color = color[idx]
         opacity = opacity[idx]
 
+        # print(W, H)
 
         inv = torch.inverse(cov2D)
         out = torch.zeros((W * H, 3), dtype=torch.float32, device='cuda')
@@ -63,11 +64,15 @@ class GaussRenderer(nn.Module):
         power = -0.5 * (dis1.view(-1, N, 1, 2) @ inv @ dis1.view(-1, N, 2, 1)).squeeze()
         power = power.clamp(max = 0)
         alpha = (opacity.view(1, -1) * torch.exp(power)).clamp(max = 0.99)
-        alpha[alpha < 1./255.] = 0
+        # alpha[alpha < 1./255.] = 0
+        alpha = torch.where(alpha < 1/255, torch.zeros_like(alpha), alpha)
+
         tran = torch.cat((torch.ones((H*W, 1), device='cuda'), 1-alpha), dim=-1)
         tran = torch.cumprod(tran, 1)
-        tran[tran < 0.001] = 0
+        # tran[tran < 0.001] = 0
+        tran = torch.where(tran < 0.001, torch.zeros_like(tran), tran)
         weight = alpha * tran[:, :-1]
+
         out = (weight @ color).view(W, H, 3) + self.bg * tran[:, -1].view(W, H, 1)
         return {
             "render": out.permute(1, 0, 2)
@@ -120,7 +125,7 @@ class GaussRenderer(nn.Module):
             rets = self.render(
                 camera = camera, 
                 means2D=means2D,
-                cov2d=cov2d,
+                cov2D=cov2d,
                 color=color,
                 opacity=opacity, 
                 depths=depths,
@@ -154,7 +159,7 @@ if __name__ == '__main__':
     out = renderer.render(camera, mean2D, depth, cov2D, color, opacity)['render']
     out = (out - out.min()) / (out.max() - out.min())
 
-    print(out.cpu().numpy().shape)
+    # print(out.cpu().numpy().shape)
     plt.imshow(out.cpu().numpy())
     plt.show()
     # plt.imsave('./lib/render/test_render1.png', out.cpu().numpy())

@@ -9,9 +9,9 @@ from lib.sh_utils import get_sh_color
 
 def projection_ndc(points, viewmatrix, projmatrix, eps=1e-6):
     points_o = torch.hstack([points, torch.ones(points.size(0), 1, device='cuda')])  # make it homogenous
-    viewmatrix = viewmatrix.to('cuda')
-    projmatrix = projmatrix.to('cuda')
-    print(viewmatrix.shape, projmatrix.shape)
+    viewmatrix = viewmatrix
+    projmatrix = projmatrix
+    # print(viewmatrix.shape, projmatrix.shape)
     points_h = points_o @ viewmatrix @ projmatrix  # projection
 
     p_w = 1.0 / (points_h[:, -1:] + eps)
@@ -67,7 +67,7 @@ def gen_scaling(scale: torch.tensor):
 
 
 def get_covariance_3d(R, S):
-    print('rs', R.shape, S.shape)
+    # print('rs', R.shape, S.shape)
     RS = R @ S  # [Vec, 3, 3]
     return RS @ RS.transpose(1, 2)
 

@@ -18,6 +18,7 @@ def img2mse(x, y, mask=None):
     :param mask: optional, [(...)]
     :return: mse score
     """
+    
     if mask is None:
         return torch.mean((x - y) * (x - y))
     else:

@@ -11,8 +11,9 @@ class Camera(nn.Module):
     def __init__(self, w2c, camera_df, image_df, znear=0.1, zfar=100):
         super(Camera, self).__init__()
         device = w2c.device
+        # print('dev', device)
         self.znear = znear
-        self.trans = torch.cat(image_df['TX'], image_df['TY'], image_df['TZ']).to(device)
+        self.trans = torch.from_numpy(image_df[['TX', 'TY', 'TZ']].to_numpy().astype(np.float32)).to(device)
         self.zfar = zfar
         self.focal_x = camera_df['FocalX']
         self.focal_y = camera_df['FocalY']
