@@ -20,7 +20,7 @@ if __name__ == "__main__":
     """
     parser.add_argument("--results_folder", type=str, default="./result", help="Output folder")
     parser.add_argument("--lr", type=float, default=1e-2, help="Train learning rate")
-    parser.add_argument("--batch_size", type=int, default=4096, help="Train batch size")
+    parser.add_argument("--batch_size", type=int, default=1, help="Train batch size")
     parser.add_argument("--epochs", type=int, default=25000, help="Training epochs")
 
     parser.add_argument("--gradient_accumulate_every", type=int, default=1)

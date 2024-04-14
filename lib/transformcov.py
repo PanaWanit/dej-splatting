@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-from lib.sh_utils import get_sh_color
+from sh_utils import get_sh_color
 
 #################### Transform ############################
 
