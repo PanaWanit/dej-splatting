@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from lib.gauss_utils import *
 from lib.point_utils import PointCloud
-from lib.sh_utils import RGB2SH
+from lib._sh_utils import RGB2SH
 from plyfile import PlyData, PlyElement
 
 class GaussModel(nn.Module):
@@ -66,16 +66,21 @@ class GaussModel(nn.Module):
 
         dist2 = torch.clamp_min(distCUDA2(torch.from_numpy(np.asarray(points)).float().cuda()), 0.0000001)
         scales = torch.log(torch.sqrt(dist2))[...,None].repeat(1, 3)
+        # scales = torch.ones((fused_point_cloud.shape[0], 3), dtype=torch.float, device="cuda")/20
         print('scale', scales.shape)
         rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
         print('fuse', fused_point_cloud.shape)
         rots[:, 0] = 1
         opacities = inverse_sigmoid(0.1 * torch.ones((fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda"))
+        # opacities = torch.ones((fused_point_cloud.shape[0], 1), dtype=torch.float, device="cuda") - 0.8
+        # print('opa', opacities)
 
         self._xyz = nn.Parameter(fused_point_cloud.requires_grad_(True))
+        # print('xyz', self._xyz)
         self._features_dc = nn.Parameter(features[:,:,0:1].transpose(1, 2).contiguous().requires_grad_(True))
         self._features_rest = nn.Parameter(features[:,:,1:].transpose(1, 2).contiguous().requires_grad_(True))
         self._scaling = nn.Parameter(scales.requires_grad_(True))
+        # print(self._scaling)
         self._rotation = nn.Parameter(rots.requires_grad_(True))
         self._opacity = nn.Parameter(opacities.requires_grad_(True))
         self.max_radii2D = torch.zeros((self._xyz.shape[0]), device="cuda")

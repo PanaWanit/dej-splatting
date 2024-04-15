@@ -43,7 +43,8 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
 
     # Read image rgb with down sampling
     def read_image(image_path, scale_factor):
-        image = torch.from_numpy(imageio.imread(image_path).astype(np.float32) / 255.0)
+        # >>>>>>>>>>>>>>>>>>>>> remove alpha channel
+        image = torch.from_numpy(imageio.imread(image_path).astype(np.float32)[..., :3] / 255.0)
         image_size = list(image.size()[:2])
 
         assert scale_factor <= 1, "scale_factor must be less than 1"

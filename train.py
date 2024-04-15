@@ -41,14 +41,14 @@ if __name__ == "__main__":
     parser.add_argument("--with_tracking", type=bool, default=False)
     parser.add_argument("--lambda_dssim", type=float, default=0.2)
     parser.add_argument("--lambda_depth", type=float, default=0.2)
-    parser.add_argument("--scale_factor", type=float, default=0.05)
+    parser.add_argument("--scale_factor", type=float, default=0.08)
 
 
     # Gauss partGaussModel()
     args = parser.parse_args()
     # TODO: Add Gauss Model
 
-    gauss_model = GaussModel()
+    gauss_model = GaussModel(sh_degree=3)
     render_kwargs = {
         "white_bkgd": True,
     }

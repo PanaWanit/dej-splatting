@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-from lib.sh_utils import get_sh_color
+from lib._sh_utils import get_sh_color
 
 #################### Transform ############################
 
@@ -72,11 +72,20 @@ def get_covariance_3d(R, S):
     return RS @ RS.transpose(1, 2)
 
 
-def get_covariance_2d(mean3d, cov3d, w2cam, focal_x, focal_y, trans):
+def get_covariance_2d(mean3d, cov3d, w2cam, focal_x, focal_y, trans, fov_x, fov_y):
 
-    tx = trans[0]
-    ty = trans[1]
-    tz = trans[2]
+    # tx = trans[0]
+    # ty = trans[1]
+    # tz = trans[2]
+
+    tan_fovx = math.tan(fov_x * 0.5)
+    tan_fovy = math.tan(fov_y * 0.5)
+    t = (mean3d @ w2cam[:3,:3]) + w2cam[-1:,:3]
+
+    # truncate the influences of gaussians far outside the frustum.
+    tx = (t[..., 0] / t[..., 2]).clip(min=-tan_fovx*1.3, max=tan_fovx*1.3) * t[..., 2]
+    ty = (t[..., 1] / t[..., 2]).clip(min=-tan_fovy*1.3, max=tan_fovy*1.3) * t[..., 2]
+    tz = t[..., 2]
 
     J = torch.zeros(mean3d.shape[0], 3, 3).to(mean3d)
     J[:, 0, 0] = 1 / tz * focal_x

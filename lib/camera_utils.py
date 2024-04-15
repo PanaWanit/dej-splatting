@@ -3,6 +3,7 @@ import torch.nn as nn
 import math
 import numpy as np
 
+
 def to_viewpoint_camera(data):
     camera = Camera(data['w2c'], data['camera_df'], data['image_df'])
     return camera
