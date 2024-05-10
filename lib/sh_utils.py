@@ -109,4 +109,4 @@ sh = torch.tensor([[1, 1, 2, 3,5,-2,4,-6,2], [2, 1, 2, 3,1,2,4,1,-1], [1, 1, 2, 
 dirs = cam_pos - mean
 dirs = dirs / torch.norm(dirs, dim=-1, keepdim=True)
 
-print(eval_sh(2, sh, dirs) + 0.5)
+# print(eval_sh(2, sh, dirs) + 0.5)

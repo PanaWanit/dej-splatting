@@ -36,20 +36,21 @@ class GaussTrainer:
             os.path.join(config.database_path, "cameras.txt"),
             scale_factor=config.scale_factor,
         )
+        self.img_scale = config.scale_factor
 
         points_df = read_points3D_colmap(os.path.join(config.database_path, "points3D.txt"))
         points_coor = points_df[["X", "Y", "Z"]].to_numpy()
-        print(points_coor[:10])
+        # print(points_coor[:10])
         channels = {
             "R": points_df["R"].to_numpy(),
             "G": points_df["G"].to_numpy(),
             "B": points_df["B"].to_numpy(),
         }
-        print(channels["R"][:10])
-        print(channels["G"][:10])
-        print(channels["B"][:10])
+        # print(channels["R"][:10])
+        # print(channels["G"][:10])
+        # print(channels["B"][:10])
         points_cloud = PointCloud(points_coor, channels)
-        raw_points = points_cloud.random_sample(2**14)
+        raw_points = points_cloud.random_sample(2**9 * 7)
         model.create_from_pcd(raw_points)
 
         ##### TODO: Implement gauss renderer
@@ -168,6 +169,7 @@ class GaussTrainer:
             print(prof.key_averages(group_by_stack_n=True).table(sort_by="self_cuda_time_total", row_limit=20))
 
         l1_loss = loss_utils.l1_loss(out["render"], data["rgb"])
+        print("complete L1")
         # depth_loss = loss_utils.l1_loss(out["depth"][..., 0][mask], depth[mask]) # we don't have depth
         ssim_loss = 1.0 - loss_utils.ssim(out["render"], data["rgb"])
 
@@ -175,6 +177,7 @@ class GaussTrainer:
             1 - self.lambda_dssim
         ) * l1_loss + self.lambda_dssim * ssim_loss  # + depth_loss * self.lambda_depth
         psnr = utils.img2psnr(out["render"], data["rgb"])
+        print("complete PSNR")
         # log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "depth": depth_loss, "psnr": psnr}
         log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "psnr": psnr}
 
@@ -189,14 +192,14 @@ class GaussTrainer:
             camera = to_viewpoint_camera(data)
 
         rgb = data["rgb"].detach().cpu().numpy()
-        print("real", rgb[..., 0].min(), rgb[..., 0].max(), rgb[..., 1].min(), rgb[..., 1].max(), rgb[..., 2].min(), rgb[..., 2].max())
+        # print("real", rgb[..., 0].min(), rgb[..., 0].max(), rgb[..., 1].min(), rgb[..., 1].max(), rgb[..., 2].min(), rgb[..., 2].max())
         out = self.gaussRender(pc=self.model, camera=camera)
         # from torchinfo import summary
         # summary gaussRender(pc=self.model, camera=camera)
         # print(summary(self.gaussRender, [self.model, camera]))
         rgb_pd = out["render"].detach().cpu().numpy()
-        print("pred", rgb_pd[..., 0].min(), rgb_pd[..., 0].max(), rgb_pd[..., 1].min(), rgb_pd[..., 1].max(), rgb_pd[..., 2].min(), rgb_pd[..., 2].max())
-        print(rgb.shape, rgb_pd.shape)
+        # print("pred", rgb_pd[..., 0].min(), rgb_pd[..., 0].max(), rgb_pd[..., 1].min(), rgb_pd[..., 1].max(), rgb_pd[..., 2].min(), rgb_pd[..., 2].max())
+        # print(rgb.shape, rgb_pd.shape)
         image = np.concatenate([rgb, rgb_pd], axis=1)
         # image = np.concatenate([image, depth], axis=0)
         utils.imwrite(os.path.join(self.results_folder, f"image-{self.step}.png"), image)
@@ -224,8 +227,9 @@ class GaussTrainer:
                         loss, log_dict = self.on_train_step()
                         loss = loss / self.gradient_accumulate_every
                         total_loss += loss
-
+                    print("start backward")
                     self.accelerator.backward(loss)
+                    print("end backward")
 
                     # loss, log_dict = self.on_train_step()
                     # loss = loss / self.gradient_accumulate_every

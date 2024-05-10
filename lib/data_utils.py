@@ -56,17 +56,20 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
             image = F.interpolate(image.permute(0, 3, 1, 2), scale_factor=scale_factor, mode="bilinear").permute(
                 0, 2, 3, 1
             )  # [B, C, H, W]
-            image = image.squeeze(0).cuda()
+            image = image.cuda()
 
         return image
 
     dir = os.path.dirname(images_file_path)
-    rgbs = [read_image(os.path.join(dir, img_path), scale_factor) for img_path in df["NAME"]]
+    rgbs = torch.cat([read_image(os.path.join(dir, img_path), scale_factor) for img_path in df["NAME"]], dim=0)
+    # print(">>>>>>>>>>>>>>>> rgb device:", rgbs.device)
+    print(">>>>>>>>>>>>>>>> rgb shape:", rgbs.shape)
 
     return extrinsics, R, df["CAMERA_ID"].to_numpy() - 1, rgbs, df
 
 
-def read_cameras_colmap(camera_file_path: str):
+def read_cameras_colmap(camera_file_path: str, scale_factor: float = 1):
+    # print("camera scale:", scale_factor)
     columns = ["CAM_ID", "MODEL", "W", "H", "FocalX", "FocalY", "PrincX", "PrincY"]
     columns_type = {
         "CAM_ID": int,
@@ -83,17 +86,17 @@ def read_cameras_colmap(camera_file_path: str):
     df = pd.DataFrame(cam_lists, columns=columns).astype(columns_type)
 
     intrinsics = torch.zeros(df.shape[0], 3, 3)
-    intrinsics[:, 0, 0] = torch.from_numpy(df["FocalX"].to_numpy())
-    intrinsics[:, 1, 1] = torch.from_numpy(df["FocalY"].to_numpy())
-    intrinsics[:, 0, 2] = torch.from_numpy(df["PrincX"].to_numpy())
-    intrinsics[:, 1, 2] = torch.from_numpy(df["PrincY"].to_numpy())
+    intrinsics[:, 0, 0] = torch.from_numpy(df["FocalX"].to_numpy()) * scale_factor
+    intrinsics[:, 1, 1] = torch.from_numpy(df["FocalY"].to_numpy()) * scale_factor
+    intrinsics[:, 0, 2] = torch.from_numpy(df["PrincX"].to_numpy()) * scale_factor
+    intrinsics[:, 1, 2] = torch.from_numpy(df["PrincY"].to_numpy()) * scale_factor
     intrinsics[:, 2, 2] = 1
     return intrinsics, torch.from_numpy(df["W"].to_numpy()), torch.from_numpy(df["H"].to_numpy()), df
 
 
 def read_all(images_file_path: str, camera_file_path: str, scale_factor: float = 1):
     extrinsics, R, cam_ids, rgbs, image_df = read_images_colmap(images_file_path, scale_factor)
-    intrinsics, Ws, Hs, camera_df = read_cameras_colmap(camera_file_path)
+    intrinsics, Ws, Hs, camera_df = read_cameras_colmap(camera_file_path, scale_factor)
 
     properties = []
 
@@ -121,6 +124,7 @@ def read_all(images_file_path: str, camera_file_path: str, scale_factor: float =
                 "c2w": cur_extrinsic.inverse(),
                 "image_df": cur_image_df,
                 "camera_df": cur_camera_df,
+                "scale_factor": scale_factor,
             }
         )
     return properties

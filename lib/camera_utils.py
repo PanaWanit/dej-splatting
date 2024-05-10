@@ -5,23 +5,24 @@ import numpy as np
 
 
 def to_viewpoint_camera(data):
-    camera = Camera(data['w2c'], data['camera_df'], data['image_df'])
+    camera = Camera(data['w2c'], data['camera_df'], data['image_df'], data['scaledW'], data['scaledH'], data['scale_factor'])
     return camera
 
 class Camera(nn.Module):
-    def __init__(self, w2c, camera_df, image_df, znear=0.1, zfar=100):
+    def __init__(self, w2c, camera_df, image_df, scaledW, scaledH, scale_factor, znear=0.1, zfar=100):
         super(Camera, self).__init__()
         device = w2c.device
         # print('dev', device)
         self.znear = znear
         self.trans = torch.from_numpy(image_df[['TX', 'TY', 'TZ']].to_numpy().astype(np.float32)).to(device)
         self.zfar = zfar
-        self.focal_x = camera_df['FocalX']
-        self.focal_y = camera_df['FocalY']
-        self.FoVx = focal2fov(self.focal_x, camera_df['W'])
-        self.FoVy = focal2fov(self.focal_y, camera_df['H'])
-        self.image_width = camera_df['W']
-        self.image_height = camera_df['H']
+        self.focal_x = camera_df['FocalX'] * scale_factor
+        self.focal_y = camera_df['FocalY'] * scale_factor
+        self.FoVx = focal2fov(self.focal_x, scaledW)
+        self.FoVy = focal2fov(self.focal_y, scaledH)
+        self.image_width = scaledW
+        self.image_height = scaledH
+        # print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>", self.image_width, self.image_height)
         self.world_view_transform = w2c.transpose(0,1).to(device)
         self.projection_matrix = getProjectionMatrix(znear=self.znear, zfar=self.zfar, fovX=self.FoVx, fovY=self.FoVy).transpose(0,1).to(device)
         self.camera_center = self.world_view_transform.inverse()[3, :3]
