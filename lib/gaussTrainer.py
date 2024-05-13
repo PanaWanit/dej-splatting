@@ -46,6 +46,10 @@ class GaussTrainer:
             "G": points_df["G"].to_numpy(),
             "B": points_df["B"].to_numpy(),
         }
+        print("min max mean")
+        print(channels["R"].min(), channels["R"].max(), channels["R"].mean())
+        print(channels["G"].min(), channels["G"].max(), channels["G"].mean())
+        print(channels["B"].min(), channels["B"].max(), channels["B"].mean())
         # print(channels["R"][:10])
         # print(channels["G"][:10])
         # print(channels["B"][:10])
@@ -169,15 +173,26 @@ class GaussTrainer:
             print(prof.key_averages(group_by_stack_n=True).table(sort_by="self_cuda_time_total", row_limit=20))
 
         l1_loss = loss_utils.l1_loss(out["render"], data["rgb"])
-        print("complete L1")
+        out_np = out["render"].detach().cpu().numpy()
+        print("out min max mean")
+        print(out_np[..., 0].min(), out_np[..., 0].max(), out_np[..., 0].mean())
+        print(out_np[..., 1].min(), out_np[..., 1].max(), out_np[..., 1].mean())
+        print(out_np[..., 2].min(), out_np[..., 2].max(), out_np[..., 2].mean())
+        data_np = data["rgb"].detach().cpu().numpy()
+        print("data min max mean")
+        print(data_np[..., 0].min(), data_np[..., 0].max(), data_np[..., 0].mean())
+        print(data_np[..., 1].min(), data_np[..., 1].max(), data_np[..., 1].mean())
+        print(data_np[..., 2].min(), data_np[..., 2].max(), data_np[..., 2].mean())
+        # print("complete L1")
         # depth_loss = loss_utils.l1_loss(out["depth"][..., 0][mask], depth[mask]) # we don't have depth
         ssim_loss = 1.0 - loss_utils.ssim(out["render"], data["rgb"])
 
-        total_loss = (
-            1 - self.lambda_dssim
-        ) * l1_loss + self.lambda_dssim * ssim_loss  # + depth_loss * self.lambda_depth
+        total_loss = (1 - self.lambda_dssim) * l1_loss * 0.3 * + self.lambda_dssim * ssim_loss
+        total_loss += max(0, out["render"].mean() - 1) ** 2 * 0.1
+        total_loss += max(0, out["color"].mean() - 1) ** 2 *0.3
+        total_loss += (out["color"][out["color"] > 1] - 1).mean() * 0.1
         psnr = utils.img2psnr(out["render"], data["rgb"])
-        print("complete PSNR")
+        # print("complete PSNR")
         # log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "depth": depth_loss, "psnr": psnr}
         log_dict = {"total": total_loss, "l1": l1_loss, "ssim": ssim_loss, "psnr": psnr}
 
@@ -193,6 +208,7 @@ class GaussTrainer:
 
         rgb = data["rgb"].detach().cpu().numpy()
         # print("real", rgb[..., 0].min(), rgb[..., 0].max(), rgb[..., 1].min(), rgb[..., 1].max(), rgb[..., 2].min(), rgb[..., 2].max())
+        # exit(0)
         out = self.gaussRender(pc=self.model, camera=camera)
         # from torchinfo import summary
         # summary gaussRender(pc=self.model, camera=camera)
@@ -200,10 +216,11 @@ class GaussTrainer:
         rgb_pd = out["render"].detach().cpu().numpy()
         # print("pred", rgb_pd[..., 0].min(), rgb_pd[..., 0].max(), rgb_pd[..., 1].min(), rgb_pd[..., 1].max(), rgb_pd[..., 2].min(), rgb_pd[..., 2].max())
         # print(rgb.shape, rgb_pd.shape)
+        # exit(0)
         image = np.concatenate([rgb, rgb_pd], axis=1)
         # image = np.concatenate([image, depth], axis=0)
         utils.imwrite(os.path.join(self.results_folder, f"image-{self.step}.png"), image)
-        print('saved')
+        # print('saved')
         # exit(0)
 
     def train(self):
@@ -227,9 +244,9 @@ class GaussTrainer:
                         loss, log_dict = self.on_train_step()
                         loss = loss / self.gradient_accumulate_every
                         total_loss += loss
-                    print("start backward")
+                    # print("start backward")
                     self.accelerator.backward(loss)
-                    print("end backward")
+                    # print("end backward")
 
                     # loss, log_dict = self.on_train_step()
                     # loss = loss / self.gradient_accumulate_every

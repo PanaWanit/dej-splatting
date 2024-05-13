@@ -5,10 +5,16 @@ import os
 from lib.data_utils import read_all
 from lib.gaussTrainer import GaussTrainer
 from lib.gauss_model import GaussModel
+import math
+import json
+from argparse import Namespace
 
 
 USE_GPU_PYTORCH = True
 USE_PROFILE = False
+
+def fov2focal(fov, pixels):
+    return pixels / (2 * math.tan(fov / 2))
 
 if __name__ == "__main__":
     device = "cuda"
@@ -54,5 +60,29 @@ if __name__ == "__main__":
     }
     trainer = GaussTrainer(gauss_model, config=args, render_kwargs=render_kwargs)
 
+    json_cams = []
+    for id, prop in enumerate(trainer.data):
+        camera_entry = {
+        'id' : id,
+        'img_name' : prop["image_df"]["NAME"],
+        'width' : prop["scaledW"] / prop["scale_factor"],
+        'height' : prop["scaledH"] / prop["scale_factor"],
+        'position': prop["w2c"][:3, 3].tolist(),
+        'rotation': prop["w2c"][:3, :3].tolist(),
+        'fy' : prop["camera_df"]["FocalY"] * prop["scale_factor"],
+        'fx' : prop["camera_df"]["FocalX"] * prop["scale_factor"],
+    }
+        json_cams.append(camera_entry)
+    
+    with open(os.path.join(args.results_folder, "cameras.json"), 'w') as file:
+        json.dump(json_cams, file)
+    
+    with open(os.path.join(args.results_folder, "cfg_args"), 'w') as cfg_log_f:
+        cfg_log_f.write(str(Namespace(**vars(args))))
+
     trainer.on_evaluate_step()
     trainer.train()
+
+
+    
+    gauss_model.save_ply(os.path.join(args.results_folder, "point_cloud.ply"))

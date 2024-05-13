@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from lib.gauss_utils import *
 from lib.point_utils import PointCloud
-from lib._sh_utils import RGB2SH
+from lib.sh_utils import RGB2SH
 from plyfile import PlyData, PlyElement
 
 class GaussModel(nn.Module):
@@ -67,6 +67,7 @@ class GaussModel(nn.Module):
         dist2 = torch.clamp_min(distCUDA2(torch.from_numpy(np.asarray(points)).float().cuda()), 0.0000001)
         scales = torch.log(torch.sqrt(dist2))[...,None].repeat(1, 3)
         # scales = torch.ones((fused_point_cloud.shape[0], 3), dtype=torch.float, device="cuda")/20
+        scales[...] = -4.4080
         print('scale', scales.shape)
         rots = torch.zeros((fused_point_cloud.shape[0], 4), device="cuda")
         print('fuse', fused_point_cloud.shape)
@@ -139,3 +140,5 @@ class GaussModel(nn.Module):
         attributes = np.concatenate((xyz, normals, features_dc, features_rest, opacities, scale, rotation), axis=1)
         elements[:] = list(map(tuple, attributes))
         PlyData([PlyElement.describe(elements, 'vertex')]).write(path)
+
+        

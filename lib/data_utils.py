@@ -63,7 +63,7 @@ def read_images_colmap(images_file_path: str, scale_factor: float = 1):
     dir = os.path.dirname(images_file_path)
     rgbs = torch.cat([read_image(os.path.join(dir, img_path), scale_factor) for img_path in df["NAME"]], dim=0)
     # print(">>>>>>>>>>>>>>>> rgb device:", rgbs.device)
-    print(">>>>>>>>>>>>>>>> rgb shape:", rgbs.shape)
+    # print(">>>>>>>>>>>>>>>> rgb shape:", rgbs.shape)
 
     return extrinsics, R, df["CAMERA_ID"].to_numpy() - 1, rgbs, df
 
@@ -106,6 +106,7 @@ def read_all(images_file_path: str, camera_file_path: str, scale_factor: float =
 
         cur_R = R[idx]
         cur_rgb = rgbs[idx]
+        print("rgb min max mean", cur_rgb.min(), cur_rgb.max(), cur_rgb.mean())
 
         cur_image_df = image_df.iloc[idx]
         cur_camera_df = camera_df.iloc[cam_id]
@@ -150,4 +151,7 @@ def read_points3D_colmap(point3D_file_path: str):
         point3D_list = [line.split()[:7] for line in f.readlines()]
 
     df = pd.DataFrame(point3D_list, columns=point3D_columns).astype(columns_type)
+    df["R"] = df["R"] / 255.0
+    df["G"] = df["G"] / 255.0
+    df["B"] = df["B"] / 255.0
     return df

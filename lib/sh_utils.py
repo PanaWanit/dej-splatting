@@ -110,3 +110,21 @@ dirs = cam_pos - mean
 dirs = dirs / torch.norm(dirs, dim=-1, keepdim=True)
 
 # print(eval_sh(2, sh, dirs) + 0.5)
+
+if __name__ == "__main__":
+    import numpy as np
+    shs = np.load('./tt/shs.npy')
+    rays_d = np.load('./tt/rays_d.npy')
+    deg = 3
+    shs = torch.tensor(shs, dtype=torch.float32)
+    rays_d = torch.tensor(rays_d, dtype=torch.float32)
+    res = eval_sh(deg, shs, rays_d)
+    res = (res + 0.5).clip(min=0.0)
+    res = res.detach().cpu().numpy()
+
+    ans = np.load('./tt/color.npy')
+
+    print("res", res)
+    print("ans", ans)
+
+    print(np.allclose(res, ans, atol=1e-5))

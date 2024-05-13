@@ -171,7 +171,18 @@ class GaussRenderer(nn.Module):
         rays_d = means3D - rays_o
         color = eval_sh(self.active_sh_degree, shs.permute(0,2,1), rays_d)
         color = (color + 0.5).clip(min=0.0)
-        return color / min(255, max(255, color.max()))
+        # return color / min(255, max(255, color.max()))
+        shs_np = shs.detach().cpu().numpy()
+        print(">>>>>>>>> shs min max mean", shs_np.shape)
+        print(shs_np[..., 0].min(), shs_np[..., 0].max(), shs_np[..., 0].mean())
+        print(shs_np[..., 1].min(), shs_np[..., 1].max(), shs_np[..., 1].mean())
+        print(shs_np[..., 2].min(), shs_np[..., 2].max(), shs_np[..., 2].mean())
+        color_np = color.detach().cpu().numpy()
+        print(">>>>>>>>> color min max mean", color_np.shape)
+        print(color_np[..., 0].min(), color_np[..., 0].max(), color_np[..., 0].mean())
+        print(color_np[..., 1].min(), color_np[..., 1].max(), color_np[..., 1].mean())
+        print(color_np[..., 2].min(), color_np[..., 2].max(), color_np[..., 2].mean())
+        return color
     
     def render(self, camera, means2D, cov2d, color, opacity, depths):
         # camera.image_width, camera.image_height = 256, 256
@@ -194,10 +205,10 @@ class GaussRenderer(nn.Module):
         # cov2d = torch.eye(2,2).to('cuda').expand(means2D.size(0),2,2)
 
         radii = get_radius(cov2d)
-        print(radii.shape, means2D.shape)
+        # print(radii.shape, means2D.shape)
         rect = get_rect(means2D, radii, width=camera.image_width, height=camera.image_height)
         
-        self.render_color = torch.ones(*self.pix_coord.shape[:2], 3).to('cuda')
+        self.render_color = torch.zeros(*self.pix_coord.shape[:2], 3).to('cuda')
         self.render_depth = torch.zeros(*self.pix_coord.shape[:2], 1).to('cuda')
         self.render_alpha = torch.zeros(*self.pix_coord.shape[:2], 1).to('cuda')
 
@@ -209,7 +220,7 @@ class GaussRenderer(nn.Module):
                 over_tl = rect[0][..., 0].clip(min=w), rect[0][..., 1].clip(min=h)
                 over_br = rect[1][..., 0].clip(max=w+TILE_SIZE-1), rect[1][..., 1].clip(max=h+TILE_SIZE-1)
                 in_mask = (over_br[0] > over_tl[0]) & (over_br[1] > over_tl[1]) # 3D gaussian in the tile 
-                in_mask = torch.ones_like(in_mask) # for now
+                # in_mask = torch.ones_like(in_mask) # for now
                 
                 if not in_mask.sum() > 0:
                     continue
@@ -239,11 +250,12 @@ class GaussRenderer(nn.Module):
                 self.render_color[h:h+TILE_SIZE, w:w+TILE_SIZE] = tile_color.reshape(TILE_SIZE, TILE_SIZE, -1)
                 self.render_depth[h:h+TILE_SIZE, w:w+TILE_SIZE] = tile_depth.reshape(TILE_SIZE, TILE_SIZE, -1)
                 self.render_alpha[h:h+TILE_SIZE, w:w+TILE_SIZE] = acc_alpha.reshape(TILE_SIZE, TILE_SIZE, -1)
-        print('rendered')
+        # print('rendered')
         return {
             "render": self.render_color,
             "depth": self.render_depth,
             "alpha": self.render_alpha,
+            "color" : color,
             # "visiility_filter": radii > 0,
             # "radii": radii
         }
